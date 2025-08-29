@@ -19,9 +19,10 @@ Pod::Spec.new do |spec|
   spec.framework    = 'CFNetwork'
 
   spec.ios.deployment_target  = '13.0'
-  spec.ios.vendored_libraries = 'NMSSH-iOS/Libraries/lib/libssh2.a', 'NMSSH-iOS/Libraries/lib/libssl.a', 'NMSSH-iOS/Libraries/lib/libcrypto.a'
+  spec.ios.vendored_libraries = 'NMSSH-iOS/Libraries/lib/libssh2.a'
   spec.ios.source_files       = 'NMSSH-iOS', 'NMSSH-iOS/Libraries/**/*.h'
   spec.ios.public_header_files  = 'NMSSH-iOS/Libraries/**/*.h'
+  spec.ios.dependency 'OpenSSL-Universal', '3.3.2000'
 
   spec.osx.deployment_target  = '10.8'
   spec.osx.vendored_libraries = 'NMSSH-OSX/Libraries/lib/libssh2.a', 'NMSSH-OSX/Libraries/lib/libssl.a', 'NMSSH-OSX/Libraries/lib/libcrypto.a'
