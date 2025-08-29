@@ -38,4 +38,8 @@ Pod::Spec.new do |spec|
     "OTHER_LDFLAGS" => "-ObjC -lcrypto -lssl",
   }
 
+  spec.pod_target_xcconfig = {
+    "FRAMEWORK_SEARCH_PATHS" => "$(inherited)",
+  }
+
 end
