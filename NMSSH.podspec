@@ -33,7 +33,7 @@ Pod::Spec.new do |spec|
   }
 
   spec.xcconfig = {
-    "OTHER_LDFLAGS" => "-ObjC",
+    "OTHER_LDFLAGS" => "-ObjC -lcrypto -lssl",
   }
 
 end
