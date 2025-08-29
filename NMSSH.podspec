@@ -22,12 +22,13 @@ Pod::Spec.new do |spec|
   spec.ios.vendored_libraries = 'NMSSH-iOS/Libraries/lib/libssh2.a'
   spec.ios.source_files       = 'NMSSH-iOS', 'NMSSH-iOS/Libraries/**/*.h'
   spec.ios.public_header_files  = 'NMSSH-iOS/Libraries/**/*.h'
-  spec.ios.dependency 'OpenSSL-Universal', '3.3.2000'
 
   spec.osx.deployment_target  = '10.8'
-  spec.osx.vendored_libraries = 'NMSSH-OSX/Libraries/lib/libssh2.a', 'NMSSH-OSX/Libraries/lib/libssl.a', 'NMSSH-OSX/Libraries/lib/libcrypto.a'
+  spec.osx.vendored_libraries = 'NMSSH-OSX/Libraries/lib/libssh2.a'
   spec.osx.source_files       = 'NMSSH-OSX', 'NMSSH-OSX/Libraries/**/*.h'
   spec.osx.public_header_files  = 'NMSSH-OSX/Libraries/**/*.h'
+
+  spec.dependency 'OpenSSL-Universal', '3.3.2000'
 
   spec.resource_bundles = {
     'NMSSHPrivacy' => ['NMSSH/PrivacyInfo.xcprivacy'],
