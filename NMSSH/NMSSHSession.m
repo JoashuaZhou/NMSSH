@@ -18,6 +18,9 @@
 @property (nonatomic, strong) NSNumber *port;
 @property (nonatomic, strong) NMSSHHostConfig *hostConfig;
 @property (nonatomic, assign) LIBSSH2_SESSION *sessionToFree;
+@property (nonatomic, assign) BOOL disconnectScheduled;
+
+- (void)nmssh_scheduleDisconnectWithError:(NSError *)error rawSession:(LIBSSH2_SESSION *)rawSession;
 @end
 
 @implementation NMSSHSession
@@ -195,6 +198,10 @@
 }
 
 - (BOOL)connectWithTimeout:(NSNumber *)timeout {
+    @synchronized (self) {
+        self.disconnectScheduled = NO;
+    }
+
     if (self.isConnected) {
         [self disconnect];
     }
@@ -807,6 +814,34 @@
     return @"";
 }
 
+- (void)nmssh_scheduleDisconnectWithError:(NSError *)error rawSession:(LIBSSH2_SESSION *)rawSession {
+    dispatch_queue_t queue = nil;
+    @synchronized (self) {
+        if (self.disconnectScheduled) {
+            return;
+        }
+        self.disconnectScheduled = YES;
+        queue = self.operationQueue;
+        if (!queue) {
+            queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+        }
+    }
+
+    dispatch_async(queue, ^{
+        id<NMSSHSessionDelegate> delegate = nil;
+        @synchronized (self) {
+            if (self.rawSession != rawSession) {
+                return;
+            }
+            delegate = self.delegate;
+        }
+        [self disconnect];
+        if (delegate && [delegate respondsToSelector:@selector(session:didDisconnectWithError:)]) {
+            [delegate session:self didDisconnectWithError:error];
+        }
+    });
+}
+
 void kb_callback(const char *name, int name_len, const char *instr, int instr_len,
                  int num_prompts, const LIBSSH2_USERAUTH_KBDINT_PROMPT *prompts, LIBSSH2_USERAUTH_KBDINT_RESPONSE *res, void **abstract) {
     int i;
@@ -842,11 +877,7 @@ void disconnect_callback(LIBSSH2_SESSION *session, int reason, const char *messa
     }
 
     NSError *error = [NSError errorWithDomain:@"NMSSH" code:reason userInfo:userInfo];
-    if (self.delegate && [self.delegate respondsToSelector:@selector(session:didDisconnectWithError:)]) {
-        [self.delegate session:self didDisconnectWithError:error];
-    }
-
-    [self disconnect];
+    [self nmssh_scheduleDisconnectWithError:error rawSession:session];
 }
 
 // -----------------------------------------------------------------------------

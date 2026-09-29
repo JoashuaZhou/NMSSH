@@ -123,6 +123,8 @@ typedef NS_ENUM(NSInteger, NMSSHChannelType)  {
  If an error occurs, it will return NO and populate the error object.
  If requestPty is enabled request a pseudo terminal before running the
  command.
+ Startup failures are reported synchronously and do not invoke
+ `channelShellDidClose:` because no shell reader has started.
 
  @param error Error handler
  @returns Shell initialization success

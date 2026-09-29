@@ -21,6 +21,7 @@
 		6EB9E8061887F52C003A9BE4 /* NMSFTPFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EB9E8041887F52C003A9BE4 /* NMSFTPFile.m */; };
 		6EB9E8071887F533003A9BE4 /* NMSFTPFile.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EB9E8041887F52C003A9BE4 /* NMSFTPFile.m */; };
 		6EE908A5188D597300997E11 /* NMSFTPFileTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EE908A4188D597300997E11 /* NMSFTPFileTests.m */; };
+		7013FFC3306AE0A0002650C3 /* NMSSHConcurrencyTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7013FFC2306AE0A0002650C3 /* NMSSHConcurrencyTests.m */; };
 		A6AE1EBB191C7B5800780C19 /* NMSSHConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = A6AE1EB9191C7B5800780C19 /* NMSSHConfig.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		A6AE1EBC191C7B5800780C19 /* NMSSHConfig.m in Sources */ = {isa = PBXBuildFile; fileRef = A6AE1EBA191C7B5800780C19 /* NMSSHConfig.m */; };
 		A6AE1EBE191C835900780C19 /* NMSSHConfigTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A6AE1EBD191C835900780C19 /* NMSSHConfigTests.m */; };
@@ -94,6 +95,7 @@
 		6EB9E8031887F52C003A9BE4 /* NMSFTPFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NMSFTPFile.h; sourceTree = "<group>"; };
 		6EB9E8041887F52C003A9BE4 /* NMSFTPFile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NMSFTPFile.m; sourceTree = "<group>"; };
 		6EE908A4188D597300997E11 /* NMSFTPFileTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NMSFTPFileTests.m; sourceTree = "<group>"; };
+		7013FFC2306AE0A0002650C3 /* NMSSHConcurrencyTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NMSSHConcurrencyTests.m; sourceTree = "<group>"; };
 		A6AE1EB9191C7B5800780C19 /* NMSSHConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NMSSHConfig.h; sourceTree = "<group>"; };
 		A6AE1EBA191C7B5800780C19 /* NMSSHConfig.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NMSSHConfig.m; sourceTree = "<group>"; };
 		A6AE1EBD191C835900780C19 /* NMSSHConfigTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NMSSHConfigTests.m; sourceTree = "<group>"; };
@@ -294,6 +296,7 @@
 				E48DA7B715D0DCC100721060 /* NMSFTPTests.h */,
 				E48DA7B815D0DCC100721060 /* NMSFTPTests.m */,
 				6EE908A4188D597300997E11 /* NMSFTPFileTests.m */,
+				7013FFC2306AE0A0002650C3 /* NMSSHConcurrencyTests.m */,
 			);
 			path = NMSSHTests;
 			sourceTree = "<group>";
@@ -472,6 +475,7 @@
 				6EB9E8071887F533003A9BE4 /* NMSFTPFile.m in Sources */,
 				E42815BF1593D6E900CF680C /* NMSSHSessionTests.m in Sources */,
 				E4F1E67C159F5923007B0B2F /* NMSSHChannelTests.m in Sources */,
+				7013FFC3306AE0A0002650C3 /* NMSSHConcurrencyTests.m in Sources */,
 				E48DA7B915D0DCC100721060 /* NMSFTPTests.m in Sources */,
 				E48DA7BF15D0EB2800721060 /* NMSFTP.m in Sources */,
 				A6AE1EBE191C835900780C19 /* NMSSHConfigTests.m in Sources */,

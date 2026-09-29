@@ -1,4 +1,5 @@
 #import "NMSSH.h"
+#import <dispatch/dispatch.h>
 
 @class NMSSHHostConfig, NMSFTP;
 @protocol NMSSHSessionDelegate;
@@ -38,6 +39,9 @@ typedef NS_ENUM(NSInteger, NMSSHKnownHostStatus) {
 
  NMSSH classes are not thread safe, you should use them from the same thread
  where you created the NMSSHSession instance.
+
+ For an asynchronous shell, set operationQueue before connecting and perform
+ every synchronous operation for that session on the same serial queue.
 
  If you want to use multiple NMSSHSession instances at once you should implement
  the [crypto mutex callbacks](http://trac.libssh2.org/wiki/MultiThreading).
@@ -149,6 +153,19 @@ typedef NS_ENUM(NSInteger, NMSSHKnownHostStatus) {
 
 /** Timeout for libssh2 blocking functions. */
 @property (nonatomic, nonnull, strong) NSNumber *timeout;
+
+/**
+ Queue used for asynchronous shell reads and deferred disconnect handling.
+
+ Set this before connecting to the serial queue used for all synchronous
+ operations on this session. If unset, NMSSH preserves its legacy global read
+ queue behavior.
+ */
+#if OS_OBJECT_USE_OBJC
+@property (nonatomic, nullable, strong) dispatch_queue_t operationQueue;
+#else
+@property (nonatomic, nullable, assign) dispatch_queue_t operationQueue;
+#endif
 
 /** Last session error. */
 @property (nonatomic, nullable, readonly) NSError *lastError;
