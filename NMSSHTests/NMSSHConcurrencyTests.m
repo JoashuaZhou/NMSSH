@@ -83,6 +83,20 @@ extern void disconnect_callback(LIBSSH2_SESSION *session,
 
 @end
 
+@interface NMSSHCleanupRecordingSession : NMSSHSession
+@property (nonatomic, copy) void (^cleanupHandler)(void);
+@end
+
+@implementation NMSSHCleanupRecordingSession
+
+- (void)disconnect {
+    if (self.cleanupHandler) {
+        self.cleanupHandler();
+    }
+}
+
+@end
+
 @interface NMSSHConcurrencyTests : XCTestCase
 @end
 
@@ -147,8 +161,9 @@ extern void disconnect_callback(LIBSSH2_SESSION *session,
                                                                      eventHandler:^{
         usedOperationQueue = dispatch_get_specific(&queueKey) == &queueKey;
         char byte;
-        read(readSocket, &byte, sizeof(byte));
-        [readExpectation fulfill];
+        if (recv(readSocket, &byte, sizeof(byte), MSG_DONTWAIT) > 0) {
+            [readExpectation fulfill];
+        }
     }
                                                                     cancelHandler:^{
         close(readSocket);
@@ -164,6 +179,80 @@ extern void disconnect_callback(LIBSSH2_SESSION *session,
     close(sockets[1]);
 
     XCTAssertTrue(usedOperationQueue);
+}
+
+- (void)testShellReaderDrainsBufferedDataWithoutASocketEvent {
+    NMSSHSession *session = [self newSession];
+    static char queueKey;
+    dispatch_queue_t queue = dispatch_queue_create("com.nmssh.tests.buffered-prompt", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_set_specific(queue, &queueKey, &queueKey, NULL);
+    session.operationQueue = queue;
+
+    int sockets[2];
+    int result = socketpair(AF_UNIX, SOCK_STREAM, 0, sockets);
+    XCTAssertEqual(result, 0);
+    if (result != 0) {
+        return;
+    }
+
+    int readSocket = sockets[0];
+    XCTestExpectation *initialRead = [self expectationWithDescription:@"read without socket bytes"];
+    XCTestExpectation *cancelled = [self expectationWithDescription:@"reader cancelled"];
+    __block BOOL startupReturned = NO;
+    __block NSUInteger readCount = 0;
+    __block dispatch_source_t source;
+    dispatch_sync(queue, ^{
+        source = [session.channel nmssh_newShellReadSourceForFileDescriptor:readSocket
+                                                             eventHandler:^{
+            XCTAssertEqual(dispatch_get_specific(&queueKey), &queueKey);
+            XCTAssertTrue(startupReturned);
+            readCount += 1;
+            [initialRead fulfill];
+        } cancelHandler:^{
+            [cancelled fulfill];
+        }];
+        dispatch_resume(source);
+        startupReturned = YES;
+    });
+
+    // Keep the peer open and never write to it: only registration can trigger a read.
+    [self waitForExpectations:@[initialRead] timeout:3.0];
+    dispatch_source_cancel(source);
+    [self waitForExpectations:@[cancelled] timeout:3.0];
+    XCTAssertEqual(readCount, 1u);
+    close(sockets[0]);
+    close(sockets[1]);
+}
+
+- (void)testCancelledShellReaderDoesNotDrainAfterTeardown {
+    NMSSHSession *session = [self newSession];
+    dispatch_queue_t queue = dispatch_queue_create("com.nmssh.tests.cancelled-reader", DISPATCH_QUEUE_SERIAL);
+    session.operationQueue = queue;
+    int sockets[2];
+    int result = socketpair(AF_UNIX, SOCK_STREAM, 0, sockets);
+    XCTAssertEqual(result, 0);
+    if (result != 0) {
+        return;
+    }
+
+    int readSocket = sockets[0];
+    __block NSUInteger readCount = 0;
+    XCTestExpectation *cancelled = [self expectationWithDescription:@"reader cancelled before registration"];
+    dispatch_sync(queue, ^{
+        dispatch_source_t source = [session.channel nmssh_newShellReadSourceForFileDescriptor:readSocket
+                                                                                eventHandler:^{
+            readCount += 1;
+        } cancelHandler:^{
+            [cancelled fulfill];
+        }];
+        dispatch_resume(source);
+        dispatch_source_cancel(source);
+    });
+
+    [self waitForExpectations:@[cancelled] timeout:3.0];
+    XCTAssertEqual(readCount, 0u);
+    close(sockets[0]);
+    close(sockets[1]);
 }
 
 - (void)testDisconnectCallbackDefersTeardownToTheSessionOperationQueue {
@@ -191,9 +280,11 @@ extern void disconnect_callback(LIBSSH2_SESSION *session,
     };
     session.delegate = observer;
 
-    void *abstract = (__bridge void *)session;
-    disconnect_callback(NULL, 11, "remote closed", 13, NULL, 0, &abstract);
-    callbackReturned = YES;
+    dispatch_sync(queue, ^{
+        void *abstract = (__bridge void *)session;
+        disconnect_callback(NULL, 11, "remote closed", 13, NULL, 0, &abstract);
+        callbackReturned = YES;
+    });
 
     [self waitForExpectations:@[expectation] timeout:3.0];
     XCTAssertTrue(observedAfterReturn);
@@ -223,6 +314,34 @@ extern void disconnect_callback(LIBSSH2_SESSION *session,
     [self waitForExpectations:@[queueDrained] timeout:3.0];
 
     XCTAssertEqual(callbackCount, 1u);
+}
+
+- (void)testRemoteDisconnectWaitsForCallerFailureCleanup {
+    NMSSHCleanupRecordingSession *session = [[NMSSHCleanupRecordingSession alloc]
+                                            initWithHost:@"127.0.0.1" port:22 andUsername:@"user"];
+    static char queueKey;
+    dispatch_queue_t queue = dispatch_queue_create("com.nmssh.tests.auth-failure", DISPATCH_QUEUE_SERIAL);
+    dispatch_queue_set_specific(queue, &queueKey, &queueKey, NULL);
+    session.operationQueue = queue;
+
+    __block BOOL callerFinished = NO;
+    NSMutableArray<NSNumber *> *cleanupOrder = [NSMutableArray array];
+    session.cleanupHandler = ^{
+        XCTAssertEqual(dispatch_get_specific(&queueKey), &queueKey);
+        [cleanupOrder addObject:@(callerFinished)];
+    };
+
+    dispatch_sync(queue, ^{
+        void *abstract = (__bridge void *)session;
+        disconnect_callback(NULL, 11, "remote closed", 13, NULL, 0, &abstract);
+        // Authentication returned failure, and the caller immediately cleans up.
+        [session disconnect];
+        callerFinished = YES;
+    });
+    dispatch_sync(queue, ^{
+        XCTAssertEqualObjects(cleanupOrder, (@[@NO, @YES]));
+        session.cleanupHandler = nil;
+    });
 }
 
 - (void)testStaleDisconnectCallbackDoesNotTearDownAnotherSession {

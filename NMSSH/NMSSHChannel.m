@@ -364,6 +364,10 @@
 
     dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fileDescriptor, 0, queue);
     dispatch_source_set_event_handler(source, eventHandler);
+    // Shell startup can consume the socket's bytes while leaving the first prompt
+    // buffered inside libssh2. Drain once on registration even if the socket is
+    // no longer readable. Source handlers are serialized on the target queue.
+    dispatch_source_set_registration_handler(source, eventHandler);
     dispatch_source_set_cancel_handler(source, cancelHandler);
     return source;
 }
